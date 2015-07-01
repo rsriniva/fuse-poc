@@ -1,0 +1,94 @@
+<?xml version="1.0"?>
+<!--
+    JBoss, Home of Professional Open Source
+    Copyright 2014, Red Hat, Inc. and/or its affiliates, and individual
+    contributors by the @authors tag. See the copyright.txt in the
+    distribution for a full listing of individual contributors.
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+-->
+<!--
+   This is the OSGi Blueprint XML file defining the Camel context and routes.  Because the file is in the
+   OSGI-INF/blueprint directory inside our JAR, it will be automatically activated as soon as the bundle is installed.
+
+   The root element for any OSGi Blueprint file is 'blueprint' - you also see the namespace definitions for both the Blueprint
+   and the Camel namespaces.
+-->
+<blueprint xmlns="http://www.osgi.org/xmlns/blueprint/v1.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="
+             http://www.osgi.org/xmlns/blueprint/v1.0.0 http://www.osgi.org/xmlns/blueprint/v1.0.0/blueprint.xsd
+             http://camel.apache.org/schema/blueprint http://camel.apache.org/schema/blueprint/camel-blueprint.xsd">
+
+  <!--
+    The namespace for the camelContext element in Blueprint is 'http://camel.apache.org/schema/blueprint'. Additionally,
+    we can also define namespace prefixes we want to use them in the XPath expressions in our CBR.
+
+    While it is not required to assign id's to the <camelContext/> and <route/> elements, it is a good idea
+    to set those for runtime management purposes (logging, JMX MBeans, ...)
+  -->
+
+  <bean id="contentProcessor" class="org.jboss.poc.processor.DemoExchangeProcessor"/>
+
+  <camelContext xmlns="http://camel.apache.org/schema/blueprint"
+                id="cbr-example">
+
+    <onException>
+      <exception>java.lang.Throwable</exception>
+      <handled>
+        <constant>true</constant>
+      </handled>
+      <log message="ERRROR content: ${in.body}" loggingLevel="INFO"/>
+      <to uri="direct:error"/>
+    </onException>
+
+    <route id="MessagesInbox">
+
+      <from
+        uri="file:///Users/eljeko/tmp/camel-poc/inmessages?doneFileName=${file:name}.done&amp;moveFailed=${file:name}.error"/>
+      <log message="File content: ${in.body}" loggingLevel="INFO"/>
+      <convertBodyTo type="java.lang.String"/>
+      <process ref="contentProcessor"/>
+
+      <choice>
+        <when>
+          <simple>${header.TYPE} == 'MESSAGE'</simple>
+          <to uri="direct:messages"/>
+        </when>
+        <when>
+          <simple>${header.TYPE} == 'INVOICE'</simple>
+          <to uri="direct:invoices"/>
+        </when>
+        <otherwise>
+          <to uri="file:///Users/eljeko/tmp/camel-poc/spool"/>
+        </otherwise>
+      </choice>
+
+    </route>
+
+    <route id="Error">
+      <from uri="direct:error"/>
+      <to uri="file:///Users/eljeko/tmp/camel-poc/error"/>
+    </route>
+
+    <route id="Messages">
+      <from uri="direct:messages"/>
+      <to uri="file:///Users/eljeko/tmp/camel-poc/messages"/>
+    </route>
+
+    <route id="Invoices">
+      <from uri="direct:invoices"/>
+      <to uri="file:///Users/eljeko/tmp/camel-poc/invoices"/>
+    </route>
+
+  </camelContext>
+
+
+</blueprint>
