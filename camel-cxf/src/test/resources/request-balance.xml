@@ -1,0 +1,7 @@
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ord="http://ws.poc.jboss.org/">
+  <soapenv:Body>
+    <ord:balance>
+      <arg0>A1B3-123C-FG54-ZK56</arg0>
+    </ord:balance>
+  </soapenv:Body>
+</soapenv:Envelope>
